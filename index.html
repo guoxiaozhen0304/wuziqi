@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五子棋游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .info {
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 18px;
+            color: #555;
+        }
+
+        .current-player {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        #board {
+            background: #daa520;
+            border: 2px solid #8b6914;
+            cursor: pointer;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            margin-top: 20px;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #5568d3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>五子棋</h1>
+        <div class="info">
+            当前玩家: <span class="current-player" id="currentPlayer">黑方</span>
+        </div>
+        <canvas id="board" width="600" height="600"></canvas>
+        <button class="btn" onclick="resetGame()">重新开始</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('board');
+        const ctx = canvas.getContext('2d');
+        const GRID_SIZE = 15;
+        const CELL_SIZE = canvas.width / GRID_SIZE;
+        const PIECE_RADIUS = CELL_SIZE * 0.4;
+
+        let board = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(0));
+        let currentPlayer = 1; // 1: 黑方, 2: 白方
+        let gameOver = false;
+
+        function drawBoard() {
+            ctx.fillStyle = '#daa520';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 1;
+
+            for (let i = 0; i < GRID_SIZE; i++) {
+                ctx.beginPath();
+                ctx.moveTo(CELL_SIZE / 2, CELL_SIZE / 2 + i * CELL_SIZE);
+                ctx.lineTo(canvas.width - CELL_SIZE / 2, CELL_SIZE / 2 + i * CELL_SIZE);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(CELL_SIZE / 2 + i * CELL_SIZE, CELL_SIZE / 2);
+                ctx.lineTo(CELL_SIZE / 2 + i * CELL_SIZE, canvas.height - CELL_SIZE / 2);
+                ctx.stroke();
+            }
+
+            const stars = [[3,3], [3,11], [7,7], [11,3], [11,11]];
+            stars.forEach(([x, y]) => {
+                ctx.beginPath();
+                ctx.arc(CELL_SIZE / 2 + x * CELL_SIZE, CELL_SIZE / 2 + y * CELL_SIZE, 4, 0, Math.PI * 2);
+                ctx.fillStyle = '#000';
+                ctx.fill();
+            });
+        }
+
+        function drawPiece(row, col, player) {
+            const x = CELL_SIZE / 2 + col * CELL_SIZE;
+            const y = CELL_SIZE / 2 + row * CELL_SIZE;
+
+            ctx.beginPath();
+            ctx.arc(x, y, PIECE_RADIUS, 0, Math.PI * 2);
+            ctx.fillStyle = player === 1 ? '#000' : '#fff';
+            ctx.fill();
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        function checkWin(row, col, player) {
+            const directions = [
+                [[0,1], [0,-1]],
+                [[1,0], [-1,0]],
+                [[1,1], [-1,-1]],
+                [[1,-1], [-1,1]]
+            ];
+
+            for (let dir of directions) {
+                let count = 1;
+
+                for (let [dx, dy] of dir) {
+                    let r = row + dx;
+                    let c = col + dy;
+                    while (r >= 0 && r < GRID_SIZE && c >= 0 && c < GRID_SIZE && board[r][c] === player) {
+                        count++;
+                        r += dx;
+                        c += dy;
+                    }
+                }
+
+                if (count >= 5) return true;
+            }
+            return false;
+        }
+
+        canvas.addEventListener('click', (e) => {
+            if (gameOver) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            const col = Math.round((x - CELL_SIZE / 2) / CELL_SIZE);
+            const row = Math.round((y - CELL_SIZE / 2) / CELL_SIZE);
+
+            if (row < 0 || row >= GRID_SIZE || col < 0 || col >= GRID_SIZE) return;
+            if (board[row][col] !== 0) return;
+
+            board[row][col] = currentPlayer;
+            drawPiece(row, col, currentPlayer);
+
+            if (checkWin(row, col, currentPlayer)) {
+                gameOver = true;
+                setTimeout(() => {
+                    alert((currentPlayer === 1 ? '黑方' : '白方') + '获胜！');
+                }, 100);
+                return;
+            }
+
+            currentPlayer = currentPlayer === 1 ? 2 : 1;
+            document.getElementById('currentPlayer').textContent = currentPlayer === 1 ? '黑方' : '白方';
+        });
+
+        function resetGame() {
+            board = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(0));
+            currentPlayer = 1;
+            gameOver = false;
+            document.getElementById('currentPlayer').textContent = '黑方';
+            drawBoard();
+        }
+
+        drawBoard();
+    </script>
+</body>
+</html>
