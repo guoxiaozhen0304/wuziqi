@@ -51,3 +51,8 @@ coverage/
 *.tgz
 *.zip
 *.tar.gz
+
+# Playwright测试
+test-results/
+playwright-report/
+playwright/.cache/
